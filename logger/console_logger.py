@@ -1,4 +1,5 @@
 import logging
+import sys
 
 def setup_logger(name='news_approval', log_level=logging.INFO):
     """
@@ -19,11 +20,11 @@ def setup_logger(name='news_approval', log_level=logging.INFO):
     if logger.hasHandlers():
         logger.handlers.clear()
 
-    # Define format
+    # Define format for AWS CloudWatch readability
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
-    # Set up console handler
-    console_handler = logging.StreamHandler()
+    # Direct logs specifically to stdout for container environments
+    console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
 

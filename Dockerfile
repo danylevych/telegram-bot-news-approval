@@ -4,6 +4,9 @@ FROM python:3.12-slim
 # Set working directory in the container
 WORKDIR /app
 
+# Disable Python output buffering - important for logs
+ENV PYTHONUNBUFFERED=1
+
 # Copy requirements file
 COPY requirements.txt .
 
@@ -11,13 +14,12 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the project files to the container
-COPY main.py .
-COPY configs/ ./configs/
-COPY handlers/ ./handlers/
-COPY logger/ ./logger/
-COPY models/ ./models/
-COPY utils/ ./utils/
+COPY . .
 
+# Environment variables (these can be overridden when running the container)
+ENV BOT_TOKEN=""
+ENV ADMINS_IDS=""
+ENV CHANNEL_TAG=""
 
 # Run the bot
 CMD ["python", "main.py"]
