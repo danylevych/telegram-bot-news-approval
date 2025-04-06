@@ -1,58 +1,49 @@
-from telegram import InputMediaPhoto, InputMediaVideo, InputMediaDocument, InlineKeyboardMarkup, InlineKeyboardButton
+from telegram import InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import ContextTypes
 from logger.console_logger import logger
-from configs import ADMINS_IDS
+from configs import ADMINS_IDS, ONE_NEWS_ONE_ADMIN
+from models.news import News
+from utils.helpers import get_target_admins
 
+async def forward_to_admins(user_data, context: ContextTypes.DEFAULT_TYPE):
+    logger.info(f"Forwarding news from user {user_data.get('username')} to admins")
 
-async def forward_to_admins(news, context: ContextTypes.DEFAULT_TYPE):
-    logger.info(f"Forwarding news from user to admins")
+    news = News(user_data)
 
     buttons = [
-        [InlineKeyboardButton("✅ Approve", callback_data="approve"),
-         InlineKeyboardButton("❌ Reject", callback_data="reject")]
+        [InlineKeyboardButton("✅ Approve", callback_data=f"approve:{news.id}"),
+         InlineKeyboardButton("❌ Reject", callback_data=f"reject:{news.id}")]
     ]
     reply_markup = InlineKeyboardMarkup(buttons)
 
-    caption = ""
-    if news.get("caption"):
-        caption += f"{news['caption']}\n\n"
-    if news.get("text"):
-        caption += f"{news['text']}"
+    content = news.get_content()
+    media_group = news.get_media_group()
 
-    media_group = []
-    for media_type in ["photo", "video", "document"]:
-        for file_id in news.get(media_type, []):
-            if media_type == "photo":
-                media_group.append(InputMediaPhoto(file_id))
-                logger.debug(f"Added photo with file_id {file_id} to media group")
-            elif media_type == "video":
-                media_group.append(InputMediaVideo(file_id))
-                logger.debug(f"Added video with file_id {file_id} to media group")
-            elif media_type == "document":
-                media_group.append(InputMediaDocument(file_id))
-                logger.debug(f"Added document with file_id {file_id} to media group")
+    target_admins = get_target_admins()
+    logger.info(f"Sending news {news.id} to {len(target_admins)} admins with {len(media_group)} media items")
 
-    payload = (
-        f"*News from @{news['username']}*\n"
-        f"*Submitted at:* {news['timestamp'].strftime('%Y-%m-%d %H:%M:%S')}"
-    )
-
-    logger.info(f"Sending news to {len(ADMINS_IDS)} admins with {len(media_group)} media items")
-
-    for admin_id in ADMINS_IDS:
+    for admin_id in target_admins:
         try:
             if media_group:
-                await context.bot.send_media_group(chat_id=admin_id, media=media_group, caption=caption)
+                messages = await context.bot.send_media_group(chat_id=admin_id, media=media_group, caption=content)
+                for msg in messages:
+                    news.track_message(admin_id, "media", msg.message_id)
                 logger.debug(f"Media group sent to admin {admin_id}")
+            elif content:
+                msg = await context.bot.send_message(chat_id=admin_id, text=content)
+                news.track_message(admin_id, "media", msg.message_id)
+                logger.debug(f"Text message sent to admin {admin_id}")
 
-            await context.bot.send_message(
+            approval_msg = await context.bot.send_message(
                 chat_id=admin_id,
-                text=payload,
+                text=news.get_payload(),
                 reply_markup=reply_markup,
                 parse_mode="Markdown"
             )
+            news.track_message(admin_id, "approval", approval_msg.message_id)
             logger.debug(f"Approval message sent to admin {admin_id}")
         except Exception as e:
             logger.error(f"Failed to send news to admin {admin_id}: {e}")
 
-    logger.info(f"News forwarded to all admins")
+    logger.info(f"News {news.id} forwarded to {'a single admin' if ONE_NEWS_ONE_ADMIN else 'all admins'}")
+    return news.id

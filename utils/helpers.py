@@ -1,7 +1,11 @@
+from collections import defaultdict
 from datetime import datetime
+import uuid
 from telegram import Message
+from configs import ADMINS_IDS, ONE_NEWS_ONE_ADMIN
 from logger.console_logger import logger
 
+_last_admin_index = -1
 
 def what_was_sent(message: Message):
     results = []
@@ -16,38 +20,23 @@ def what_was_sent(message: Message):
     return results
 
 
-def update_buffer(user_id, message: Message, user_buffers):
-    logger.info(f"Updating buffer for user {user_id}")
+def get_target_admins():
+    """
+    Get target admins based on ONE_NEWS_ONE_ADMIN setting.
+    If ONE_NEWS_ONE_ADMIN is True, returns a list with a single admin ID using round-robin selection.
+    Otherwise, returns all admin IDs.
+    """
+    global _last_admin_index
 
-    buffer = user_buffers.get(user_id, {}) or {
-        "text": "",
-        "photo": [],
-        "document": [],
-        "video": [],
-        "caption": "",
-        "timestamp": datetime.now(),
-    }
+    if not ADMINS_IDS:
+        logger.warning("No admin IDs configured!")
+        return []
 
-    buffer["username"] = message.from_user.username or message.from_user.first_name
-    buffer["text"] = message.text or buffer.get("text", '')
-    buffer["caption"] = message.caption or buffer.get("caption", '')
+    if ONE_NEWS_ONE_ADMIN:
+        _last_admin_index = (_last_admin_index + 1) % len(ADMINS_IDS)
+        admin_id = ADMINS_IDS[_last_admin_index]
+        logger.info(f"ONE_NEWS_ONE_ADMIN enabled, sending to admin {admin_id} (index: {_last_admin_index})")
+        return [admin_id]
 
-    types = what_was_sent(message)
-    for t in types:
-        if t == "photo":
-            file_id = message.photo[-1].file_id
-            buffer["photo"].append(file_id)
-            logger.debug(f"Added photo with file_id {file_id} to user {user_id}'s buffer")
-
-        elif t == "document":
-            file_id = message.document.file_id
-            buffer["document"].append(file_id)
-            logger.debug(f"Added document with file_id {file_id} to user {user_id}'s buffer")
-
-        elif t == "video":
-            file_id = message.video.file_id
-            buffer["video"].append(file_id)
-            logger.debug(f"Added video with file_id {file_id} to user {user_id}'s buffer")
-
-    logger.info(f"Buffer updated for user {user_id}")
-    return buffer
+    logger.info(f"Sending to all {len(ADMINS_IDS)} admins")
+    return ADMINS_IDS
