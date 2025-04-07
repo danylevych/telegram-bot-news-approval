@@ -30,7 +30,7 @@
       "approved": "✅ Затверджено.",
       "rejected": "❌ Відхилено.",
       "news_rejected_by": "❌ Новина була відхилена адміністратором @{admin_name}",
-      "news_payload": "*Новини від @{user_name}*\n\n*Надіслано о:* {date}"
+      "news_payload": "*Новини від @{user_name}*\n*Надіслано о:* {date}"
     },
     "buttons": {
       "approve": "✅ Затвердити",
