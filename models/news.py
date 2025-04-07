@@ -45,7 +45,7 @@ class News:
 
     def get_media_group(self):
         """Convert stored media IDs to InputMedia objects for sending"""
-        from telegram import InputMediaPhoto, InputMediaVideo, InputMediaDocument
+        from telegram import InputMediaPhoto, InputMediaVideo
 
         media_group = []
 
@@ -55,10 +55,12 @@ class News:
         for video_id in self.videos:
             media_group.append(InputMediaVideo(video_id))
 
-        for doc_id in self.documents:
-            media_group.append(InputMediaDocument(doc_id))
-
         return media_group
+
+    def get_documents(self):
+        from telegram import InputMediaDocument
+        return [InputMediaDocument(doc_id) for doc_id in self.documents]
+
 
     def get_payload(self) -> str:
         """Get formatted payload for admin approval"""
@@ -66,6 +68,10 @@ class News:
             f"*News from @{self.username}*\n"
             f"*Submitted at:* {self.timestamp.strftime('%Y-%m-%d %H:%M:%S')}"
         )
+
+    def get_submision_date(self) -> str:
+        """Get formatted submission date"""
+        return self.timestamp.strftime("%Y-%m-%d %H:%M:%S")
 
     def track_message(self, admin_id: int, message_type: str, message_id: int):
         """Track a message sent to an admin"""

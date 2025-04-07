@@ -1,0 +1,53 @@
+{
+  "user": {
+    "messages": {
+      "start": "Send your news (text + optional media). A description is required before submission.",
+      "confirmation": "📝 You provided a description. Do you want to submit this news for review?",
+      "warning_no_description": "⚠️ Please provide a description before submitting your news.",
+      "news_submitted": "✅ Your news has been submitted for approval!",
+      "submission_canceled": "❌ Submission canceled. Feel free to start over.",
+      "select_language": "Please select your language / Будь ласка, оберіть мову:",
+      "language_set": "Language set to English!",
+      "help": {
+        "general": "📋 *News Approval Bot Help*\n\nThis bot allows you to submit news for review and approval.\n\nAvailable commands:\n• /start - Start the bot\n• /help - Show this help message\n• /language - Change language",
+        "admin_note": "\n\n*Admin Commands:*\n• News sent to you will have approval options",
+        "submit_instructions": "To submit news:\n1. Send text or media\n2. Make sure to include a description\n3. Confirm submission when prompted"
+      }
+    },
+    "buttons": {
+      "submit": "✅ Submit",
+      "cancel": "❌ Cancel",
+      "language_en": "English 🇬🇧",
+      "language_uk": "Ukrainian 🇺🇦",
+      "help_user": "📱 User Guide",
+      "help_admin": "👨‍💼 Admin Guide"
+    }
+  },
+  "admin": {
+    "messages": {
+      "news_unavailable": "This news item is no longer available.",
+      "news_already_processed": "This news was already {status} by admin @{admin_name}",
+      "approved": "✅ Approved.",
+      "rejected": "❌ Rejected.",
+      "news_rejected_by": "❌ News was rejected by admin @{admin_name}",
+      "news_payload": "*News from @{user_name}*\n*Submitted at:* {date}"
+    },
+    "buttons": {
+      "approve": "✅ Approve",
+      "reject": "❌ Reject"
+    }
+  },
+  "common": {
+    "status": {
+      "approved": "approved",
+      "rejected": "rejected",
+      "pending": "pending"
+    }
+  },
+  "help": {
+    "sections": {
+      "user": "📱 *User Guide*\n\nTo submit news:\n1. Start a conversation with the bot\n2. Send your text (required)\n3. You can also attach photos or videos\n4. Click Submit when prompted\n5. Admins will review your submission\n\nUse /language to change the interface language.",
+      "admin": "👨‍💼 *Admin Guide*\n\nAs an admin, you can:\n1. Receive news submissions from users\n2. Approve or reject submissions\n\nUse /language to change the interface language."
+    }
+  }
+}

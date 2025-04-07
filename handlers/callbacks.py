@@ -5,6 +5,7 @@ from handlers.admin import forward_to_admins
 from configs import CHANNEL_TAG
 from logger.console_logger import logger
 from models.news import News
+from utils.language_manager import language_manager
 
 
 async def handle_user_confirmation(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -14,17 +15,18 @@ async def handle_user_confirmation(update: Update, context: ContextTypes.DEFAULT
     logger.info(f"Processing confirmation callback from user {user_id}: {query.data}")
 
     user = User.get(user_id, username)
+    user_lang = user.get_language()
     await query.answer()
 
     if query.data == "user_submit":
         news_id = await forward_to_admins(user.buffer, context)
-        await query.edit_message_text(f"✅ Your news has been submitted for approval!")
+        await query.edit_message_text(language_manager.get_text("user.messages.news_submitted", user_lang))
         logger.info(f"News from user {user_id} submitted successfully")
         user.clear()
 
     elif query.data == "user_cancel":
         user.clear()
-        await query.edit_message_text("❌ Submission canceled. Feel free to start over.")
+        await query.edit_message_text(language_manager.get_text("user.messages.submission_canceled", user_lang))
         logger.info(f"Submission canceled by user {user_id}")
 
 
@@ -32,6 +34,9 @@ async def handle_admin_decision(update: Update, context: ContextTypes.DEFAULT_TY
     query = update.callback_query
     admin_id = query.from_user.id
     admin_name = query.from_user.username or query.from_user.first_name or f"ID:{admin_id}"
+
+    admin = User.get(admin_id, admin_name)
+    admin_lang = admin.get_language()
 
     # Extract decision and news_id from callback data
     parts = query.data.split(":")
@@ -44,12 +49,18 @@ async def handle_admin_decision(update: Update, context: ContextTypes.DEFAULT_TY
 
     if not news:
         logger.error(f"News {news_id} not found")
-        await query.edit_message_text(text="This news item is no longer available.")
+        await query.edit_message_text(text=language_manager.get_text("admin.messages.news_unavailable", admin_lang))
         return
 
     if news.status != "pending":
+        status_key = f"common.status.{news.status}"
         await query.edit_message_text(
-            text=f"This news was already {news.status} by admin @{news.deciding_admin_name}"
+            text=language_manager.get_text(
+                "admin.messages.news_already_processed",
+                admin_lang,
+                status=language_manager.get_text(status_key, admin_lang),
+                admin_name=news.deciding_admin_name
+            )
         )
         return
 
@@ -61,17 +72,24 @@ async def handle_admin_decision(update: Update, context: ContextTypes.DEFAULT_TY
 
         try:
             # TODO: Implement publishing to channel
-            await query.edit_message_text(text=caption + "\n\n✅ Approved.")
+            await query.edit_message_text(text=caption + "\n\n" + language_manager.get_text("admin.messages.approved", admin_lang))
             logger.info(f"News approved message updated for admin {admin_name}")
 
             # Update other admins
             for other_admin_id, messages in news.admin_messages.items():
                 if other_admin_id != admin_id and messages["approval_message"]:
                     try:
+                        other_admin = User.get(other_admin_id, "")
+                        other_lang = other_admin.get_language()
                         await context.bot.edit_message_text(
                             chat_id=other_admin_id,
                             message_id=messages["approval_message"],
-                            text=caption + f"\n\n✅ Already approved by admin @{admin_name}"
+                            text=caption + f"\n\n✅ " + language_manager.get_text(
+                                "admin.messages.news_already_processed",
+                                other_lang,
+                                status=language_manager.get_text("common.status.approved", other_lang),
+                                admin_name=admin_name
+                            )
                         )
                     except Exception as e:
                         logger.error(f"Failed to update message for admin {other_admin_id}: {e}")
@@ -83,6 +101,9 @@ async def handle_admin_decision(update: Update, context: ContextTypes.DEFAULT_TY
 
         # Delete ALL messages across ALL admins
         for target_admin_id, messages in news.admin_messages.items():
+            target_admin = User.get(target_admin_id, "")
+            target_lang = target_admin.get_language()
+
             for msg_id in messages["media_messages"]:
                 try:
                     await context.bot.delete_message(chat_id=target_admin_id, message_id=msg_id)
@@ -105,7 +126,7 @@ async def handle_admin_decision(update: Update, context: ContextTypes.DEFAULT_TY
                         await context.bot.edit_message_text(
                             chat_id=target_admin_id,
                             message_id=messages["approval_message"],
-                            text=f"❌ News was rejected by admin @{admin_name}"
+                            text=language_manager.get_text("admin.messages.news_rejected_by", target_lang, admin_name=admin_name)
                         )
                     except Exception as e2:
                         logger.error(f"Failed to update message for admin {target_admin_id}: {e2}")
@@ -116,6 +137,6 @@ async def handle_admin_decision(update: Update, context: ContextTypes.DEFAULT_TY
         except Exception as e:
             logger.error(f"Failed to delete message for admin {admin_name}: {e}")
             try:
-                await query.edit_message_text(text=caption + "\n\n❌ Rejected.")
+                await query.edit_message_text(text=caption + "\n\n" + language_manager.get_text("admin.messages.rejected", admin_lang))
             except Exception as e2:
                 logger.error(f"Failed to update rejection message for admin {admin_name}: {e2}")

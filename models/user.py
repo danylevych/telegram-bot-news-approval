@@ -112,3 +112,11 @@ class User:
             logger.debug(f"Removed user {self.id} from registry")
         except KeyError:
             logger.error(f"User {self.id} not found in user registry")
+
+    def set_language(self, lang: str):
+        """Set user's preferred language"""
+        self.language = lang
+
+    def get_language(self) -> str:
+        """Get user's preferred language"""
+        return getattr(self, 'language', 'en')
