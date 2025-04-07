@@ -5,18 +5,17 @@ from logger.console_logger import logger
 from utils.language_manager import language_manager
 from handlers.language import language_command
 
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.message.from_user.id
     username = update.message.from_user.username or update.message.from_user.first_name
     user = User.get(user_id, username)
 
-    # Set default language based on Telegram client language
     if update.effective_user.language_code in language_manager.get_available_languages():
         user.set_language(update.effective_user.language_code)
 
     logger.info(f"User {user_id} started the bot")
 
-    # Get localized text
     start_text = language_manager.get_text("user.messages.start", user.get_language())
     await update.message.reply_text(start_text)
 
